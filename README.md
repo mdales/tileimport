@@ -1,0 +1,1 @@
+Simple tool to insert H3 data into postgis.
