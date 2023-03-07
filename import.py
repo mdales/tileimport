@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import re
 import sys
@@ -8,7 +10,11 @@ import psycopg
 
 SPECIES_RE = re.compile('.*res_(\d+)_7.csv')
 
-filename = "/Users/michael/Desktop/res_10357_7.csv"
+try:
+	filename = sys.argv[1]
+except IndexError:
+	print(f'usage: {sys.argv[0]} [CSV file]')
+	sys.exit(-1)
 
 ext = os.path.splitext(filename)[1]
 if ext == '.parquet':
@@ -22,7 +28,7 @@ else:
 	sys.exit(-1)
 
 species = SPECIES_RE.match(filename).groups()[0]
-experiment = 'current'
+experiment = os.path.dirname(os.path.abspath(filename)).split(os.path.sep)[-1]
 
 with psycopg.connect(host="localhost", password="mysecretpassword", user="postgres", dbname="postgres") as conn:
 
