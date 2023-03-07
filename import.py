@@ -46,7 +46,6 @@ with psycopg.connect(host="localhost", password="mysecretpassword", user="postgr
 				UNIQUE(tile, species, experiment)
 			);
 		""")
-
 		cur.execute("""
 			CREATE INDEX IF NOT EXISTS tile_idx on geotest(tile);
 		""")
@@ -56,19 +55,16 @@ with psycopg.connect(host="localhost", password="mysecretpassword", user="postgr
 		cur.execute("""
 			CREATE INDEX IF NOT EXISTS experiment_idx on geotest(experiment);
 		""")
+		cur.execute("""
+			CREATE INDEX IF NOT EXISTS centre_idx on geotest USING GIST(centre);
+		""")
 
-		for _, tileid, area in df.itertuples():
-			if area == 0.0:
-				continue
-			lat, lng = h3.cell_to_latlng(tileid)
-
-			cur.execute(
-				"""
-				INSERT INTO geotest (tile, species, centre, area, experiment)
-				VALUES (%s, %s, ST_GeomFromText(%s, 4326), %s, %s)
-				""",
-				(tileid, species, f'POINT({lng} {lat})', area, experiment)
-			)
+		with cur.copy("COPY geotest (tile, species, centre, area, experiment) FROM STDIN") as copy:
+			for _, tileid, area in df.itertuples():
+				if area == 0.0:
+					continue
+				lat, lng = h3.cell_to_latlng(tileid)
+				copy.write_row((tileid, species, f'POINT({lng} {lat})', area, experiment))
 
 		# Make the changes to the database persistent
 		conn.commit()
